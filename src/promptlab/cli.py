@@ -4,7 +4,7 @@ import click
 import yaml
 
 from . import __version__
-from .template import PromptTemplate, TemplateRegistry
+from .template import PromptTemplate
 
 
 @click.group()
