@@ -9,13 +9,13 @@ from .template import PromptTemplate
 
 @click.group()
 @click.version_option(version=__version__, prog_name="promptlab")
-def main():
+def main() -> None:
     """promptlab - Prompt engineering toolkit."""
     pass
 
 
 @main.command()
-def info():
+def info() -> None:
     """Show project information."""
     click.echo(f"promptlab v{__version__}")
 
