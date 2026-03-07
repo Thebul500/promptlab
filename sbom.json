@@ -1,0 +1,150 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:promptlab-sbom-0.1.0",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-03-07T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "promptlab",
+      "version": "0.1.0",
+      "description": "Prompt engineering toolkit. Version-controlled prompt templates with variable interpolation, A/B testing across models (OpenAI, Anthropic, Ollama), response scoring/evaluation metrics (latency, cost, quality rubrics), prompt chain composition, CLI + REST API. Python CLI tool.",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/promptlab@0.1.0"
+    },
+    "tools": [
+      {
+        "name": "promptlab-sbom-generator",
+        "version": "0.1.0"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "click",
+      "version": ">=8.0",
+      "purl": "pkg:pypi/click",
+      "scope": "required",
+      "description": "Composable command line interface toolkit",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pyyaml",
+      "version": ">=6.0",
+      "purl": "pkg:pypi/pyyaml",
+      "scope": "required",
+      "description": "YAML parser and emitter for Python",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "setuptools",
+      "version": ">=68.0",
+      "purl": "pkg:pypi/setuptools",
+      "scope": "required",
+      "description": "Build system requirement",
+      "group": "build-system"
+    },
+    {
+      "type": "library",
+      "name": "wheel",
+      "version": "*",
+      "purl": "pkg:pypi/wheel",
+      "scope": "required",
+      "description": "Build system requirement",
+      "group": "build-system"
+    },
+    {
+      "type": "library",
+      "name": "pytest",
+      "version": "*",
+      "purl": "pkg:pypi/pytest",
+      "scope": "optional",
+      "description": "Testing framework",
+      "group": "dev"
+    },
+    {
+      "type": "library",
+      "name": "pytest-cov",
+      "version": "*",
+      "purl": "pkg:pypi/pytest-cov",
+      "scope": "optional",
+      "description": "Coverage plugin for pytest",
+      "group": "dev"
+    },
+    {
+      "type": "library",
+      "name": "ruff",
+      "version": "*",
+      "purl": "pkg:pypi/ruff",
+      "scope": "optional",
+      "description": "Python linter and formatter",
+      "group": "dev"
+    },
+    {
+      "type": "library",
+      "name": "mypy",
+      "version": "*",
+      "purl": "pkg:pypi/mypy",
+      "scope": "optional",
+      "description": "Static type checker for Python",
+      "group": "dev"
+    },
+    {
+      "type": "library",
+      "name": "types-PyYAML",
+      "version": "*",
+      "purl": "pkg:pypi/types-pyyaml",
+      "scope": "optional",
+      "description": "Type stubs for PyYAML",
+      "group": "dev"
+    },
+    {
+      "type": "library",
+      "name": "bandit",
+      "version": "*",
+      "purl": "pkg:pypi/bandit",
+      "scope": "optional",
+      "description": "Security linter for Python",
+      "group": "dev"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:pypi/promptlab@0.1.0",
+      "dependsOn": [
+        "pkg:pypi/click",
+        "pkg:pypi/pyyaml"
+      ]
+    },
+    {
+      "ref": "pkg:pypi/click",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:pypi/pyyaml",
+      "dependsOn": []
+    }
+  ]
+}
