@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.network
+
 from promptlab.chain import ChainStep, PromptChain
 from promptlab.scoring import ResponseMetrics, compare_responses
 from promptlab.template import PromptTemplate, TemplateRegistry
