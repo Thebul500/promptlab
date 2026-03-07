@@ -9,6 +9,10 @@ description = "Prompt engineering toolkit. Version-controlled prompt templates w
 requires-python = ">=3.10"
 license = "MIT"
 readme = "README.md"
+dependencies = [
+    "click>=8.0",
+    "pyyaml>=6.0",
+]
 
 [project.scripts]
 promptlab = "promptlab.cli:main"
