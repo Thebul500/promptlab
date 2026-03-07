@@ -1,5 +1,7 @@
 """Tests for promptlab core functionality."""
 
+import json
+
 import pytest
 from click.testing import CliRunner
 
@@ -228,3 +230,101 @@ def test_chain_empty():
     chain = PromptChain(name="empty")
     assert chain.execute({}) == []
     assert len(chain) == 0
+
+
+# --- CLI: validate command ---
+
+
+def test_cli_validate_good_template(tmp_path):
+    tmpl_file = tmp_path / "good.yaml"
+    tmpl_file.write_text('name: greet\nversion: 1\ncontent: "Hello, {{ name }}!"')
+    runner = CliRunner()
+    result = runner.invoke(main, ["validate", str(tmpl_file)])
+    assert result.exit_code == 0
+    assert "OK" in result.output
+    assert "name" in result.output
+
+
+def test_cli_validate_missing_name(tmp_path):
+    tmpl_file = tmp_path / "noname.yaml"
+    tmpl_file.write_text('content: "Hello"')
+    runner = CliRunner()
+    result = runner.invoke(main, ["validate", str(tmpl_file)])
+    assert result.exit_code != 0
+    assert "WARN" in result.output
+    assert "Missing" in result.output
+
+
+def test_cli_validate_missing_content(tmp_path):
+    tmpl_file = tmp_path / "nocontent.yaml"
+    tmpl_file.write_text('name: test\nversion: 1')
+    runner = CliRunner()
+    result = runner.invoke(main, ["validate", str(tmpl_file)])
+    assert result.exit_code != 0
+    assert "missing required field" in result.output.lower()
+
+
+def test_cli_validate_invalid_yaml(tmp_path):
+    tmpl_file = tmp_path / "bad.yaml"
+    tmpl_file.write_text(': : : not valid yaml [[[')
+    runner = CliRunner()
+    result = runner.invoke(main, ["validate", str(tmpl_file)])
+    assert result.exit_code != 0
+
+
+# --- CLI: JSON output ---
+
+
+def test_cli_render_json_output(tmp_path):
+    tmpl_file = tmp_path / "prompt.yaml"
+    tmpl_file.write_text('name: greet\nversion: 2\ncontent: "Hello, {{ name }}!"')
+    runner = CliRunner()
+    result = runner.invoke(main, ["render", str(tmpl_file), "-v", "name=World", "-o", "json"])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["rendered"] == "Hello, World!"
+    assert data["name"] == "greet"
+    assert data["version"] == 2
+    assert data["variables"] == {"name": "World"}
+
+
+def test_cli_list_vars_json_output(tmp_path):
+    tmpl_file = tmp_path / "prompt.yaml"
+    tmpl_file.write_text('name: test\nversion: 1\ncontent: "{{ a }} and {{ b }}"')
+    runner = CliRunner()
+    result = runner.invoke(main, ["list-vars", str(tmpl_file), "-o", "json"])
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["variables"] == ["a", "b"]
+    assert data["name"] == "test"
+
+
+# --- CLI: error handling ---
+
+
+def test_cli_render_missing_var_shows_friendly_error(tmp_path):
+    tmpl_file = tmp_path / "prompt.yaml"
+    tmpl_file.write_text('name: greet\ncontent: "Hello, {{ name }}!"')
+    runner = CliRunner()
+    result = runner.invoke(main, ["render", str(tmpl_file)])
+    assert result.exit_code != 0
+    assert "Error" in result.output
+    assert "Missing template variables" in result.output
+
+
+def test_cli_render_invalid_yaml_shows_friendly_error(tmp_path):
+    tmpl_file = tmp_path / "bad.yaml"
+    tmpl_file.write_text(': : : [[[')
+    runner = CliRunner()
+    result = runner.invoke(main, ["render", str(tmpl_file)])
+    assert result.exit_code != 0
+    assert "Error" in result.output
+
+
+def test_cli_render_not_a_mapping(tmp_path):
+    tmpl_file = tmp_path / "list.yaml"
+    tmpl_file.write_text("- item1\n- item2")
+    runner = CliRunner()
+    result = runner.invoke(main, ["render", str(tmpl_file)])
+    assert result.exit_code != 0
+    assert "mapping" in result.output.lower()
