@@ -137,6 +137,7 @@ class TestCLIBinary:
         for var in ["host", "port", "protocol"]:
             assert var in result.stdout
 
+    @pytest.mark.network
     def test_render_with_localhost_data(self, tmp_path: Path) -> None:
         """Render a template using real localhost connectivity data."""
         # Get real data from localhost
@@ -169,6 +170,7 @@ class TestCLIBinary:
 # ===========================================================================
 
 
+@pytest.mark.network
 class TestTemplateWorkflow:
     """End-to-end template creation, rendering, and versioning with real data."""
 
@@ -263,6 +265,7 @@ class TestTemplateWorkflow:
 # ===========================================================================
 
 
+@pytest.mark.network
 class TestScoringPipeline:
     """Score real HTTP connections using the full metrics pipeline."""
 
@@ -336,6 +339,7 @@ class TestScoringPipeline:
 # ===========================================================================
 
 
+@pytest.mark.network
 class TestChainEndToEnd:
     """Run prompt chains using real localhost data."""
 
@@ -409,6 +413,7 @@ class TestChainEndToEnd:
 # ===========================================================================
 
 
+@pytest.mark.network
 class TestFullWorkflow:
     """Complete end-to-end workflow combining all components."""
 
