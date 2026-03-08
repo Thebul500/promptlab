@@ -1,4 +1,4 @@
-"""Feature validation tests — prove the core promptlab features work with real execution.
+"""Feature validation tests -- prove the core promptlab features work with real execution.
 
 These tests exercise template interpolation, versioning, chain composition,
 scoring/comparison, and CLI against real data. No mocks.
@@ -21,7 +21,7 @@ from promptlab.template import PromptTemplate, TemplateRegistry
 
 
 # ---------------------------------------------------------------------------
-# Template interpolation — the core feature
+# Template interpolation -- the core feature
 # ---------------------------------------------------------------------------
 
 
@@ -102,7 +102,7 @@ class TestTemplateInterpolation:
 
 
 # ---------------------------------------------------------------------------
-# Version control — templates are version-tracked
+# Version control -- templates are version-tracked
 # ---------------------------------------------------------------------------
 
 
@@ -148,13 +148,13 @@ class TestVersionControl:
     def test_registry_multiple_templates(self) -> None:
         registry = TemplateRegistry()
         for name in ["summarize", "classify", "translate", "extract"]:
-            registry.register(PromptTemplate(name=name, content=f"{{ input }}"))
+            registry.register(PromptTemplate(name=name, content="{{ input }}"))
         assert registry.list_templates() == ["classify", "extract", "summarize", "translate"]
         assert len(registry) == 4
 
 
 # ---------------------------------------------------------------------------
-# Chain composition — multi-step prompt pipelines
+# Chain composition -- multi-step prompt pipelines
 # ---------------------------------------------------------------------------
 
 
@@ -237,7 +237,7 @@ class TestChainComposition:
 
 
 # ---------------------------------------------------------------------------
-# Scoring and A/B comparison — evaluation metrics
+# Scoring and A/B comparison -- evaluation metrics
 # ---------------------------------------------------------------------------
 
 
@@ -281,7 +281,7 @@ class TestScoringAndComparison:
         assert winners["highest_throughput"] == 0  # model_a: 750 t/s vs 571 t/s
 
     def test_three_way_comparison(self) -> None:
-        """Compare three models — real A/B/C test scenario."""
+        """Compare three models -- real A/B/C test scenario."""
         fast = ResponseMetrics(latency_ms=100.0, token_count=80, cost_usd=0.005)
         fast.add_score("quality", 0.7)
 
@@ -312,7 +312,7 @@ class TestScoringAndComparison:
 
 
 # ---------------------------------------------------------------------------
-# CLI validation — real subprocess execution
+# CLI validation -- real subprocess execution
 # ---------------------------------------------------------------------------
 
 
@@ -406,7 +406,7 @@ class TestCLIFeatureValidation:
 
 
 # ---------------------------------------------------------------------------
-# End-to-end workflow — full prompt engineering lifecycle
+# End-to-end workflow -- full prompt engineering lifecycle
 # ---------------------------------------------------------------------------
 
 
@@ -446,7 +446,7 @@ class TestEndToEndWorkflow:
         score_v2.add_score("relevance", 0.9)
         score_v2.add_score("format_compliance", 0.95)
 
-        # 5. Compare — v2 should win on quality
+        # 5. Compare -- v2 should win on quality
         winners = compare_responses([score_v1, score_v2])
         assert winners["highest_quality"] == 1  # v2 better quality
         assert winners["lowest_latency"] == 0  # v1 faster
