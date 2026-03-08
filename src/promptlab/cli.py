@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 import click
 import yaml
@@ -104,11 +105,11 @@ def run(
             click.echo("Error: No providers available. Set OLLAMA_HOST, ANTHROPIC_API_KEY, or OPENAI_API_KEY.", err=True)
             sys.exit(1)
 
-    kwargs = {}
+    gen_kwargs: dict[str, Any] = {}
     if model:
-        kwargs["model"] = model
+        gen_kwargs["model"] = model
 
-    results = run_prompt(tmpl, variables, providers, **kwargs)
+    results = run_prompt(tmpl, variables, providers, **gen_kwargs)
 
     for r in results:
         click.echo(f"\n--- {r.provider_name} ({r.model}) ---")
@@ -149,11 +150,11 @@ def compare(
                f"{', '.join(p.name for p in providers)}")
     click.echo()
 
-    kwargs = {}
+    gen_kwargs: dict[str, Any] = {}
     if model:
-        kwargs["model"] = model
+        gen_kwargs["model"] = model
 
-    results = run_prompt(tmpl, variables, providers, **kwargs)
+    results = run_prompt(tmpl, variables, providers, **gen_kwargs)
     report = compare_results(results)
     click.echo(report.summary())
 
