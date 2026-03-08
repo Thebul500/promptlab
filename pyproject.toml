@@ -12,12 +12,16 @@ readme = "README.md"
 dependencies = [
     "click>=8.0",
     "pyyaml>=6.0",
+    "httpx>=0.25",
 ]
 
 [project.scripts]
 promptlab = "promptlab.cli:main"
 
 [project.optional-dependencies]
+anthropic = ["anthropic>=0.30"]
+openai = ["openai>=1.0"]
+all = ["anthropic>=0.30", "openai>=1.0"]
 dev = ["pytest", "pytest-cov", "ruff", "mypy", "types-PyYAML", "bandit"]
 
 [tool.ruff]
