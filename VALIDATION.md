@@ -138,5 +138,4 @@ $ pytest tests/ -v
 
 - E2E tests require localhost (127.0.0.1) to be running an HTTP server on port 80
 - CLI tests use subprocess, adding ~1-2s overhead per test from Python startup
-- No model API tests (OpenAI/Anthropic/Ollama) since these require API keys and running services
-- Template rendering is deterministic (no LLM calls), so "A/B testing" validates the comparison pipeline, not actual model output variation
+- Template rendering is deterministic (no LLM calls), so response comparison validates the scoring pipeline with synthetic metrics

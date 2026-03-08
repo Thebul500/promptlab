@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "promptlab"
 version = "0.1.0"
-description = "Prompt engineering toolkit. Version-controlled prompt templates with variable interpolation, A/B testing across models (OpenAI, Anthropic, Ollama), response scoring/evaluation metrics (latency, cost, quality rubrics), prompt chain composition, CLI + REST API. Python CLI tool."
+description = "Prompt engineering toolkit. Versioned prompt templates with variable interpolation, response comparison and scoring metrics (latency, cost, quality rubrics), prompt chain composition, and a CLI. Python CLI tool."
 requires-python = ">=3.10"
 license = "MIT"
 readme = "README.md"

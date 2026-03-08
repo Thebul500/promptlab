@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A prompt engineering toolkit for building, testing, and evaluating LLM prompts. Version-controlled prompt templates with variable interpolation, A/B testing across models, response scoring with quality rubrics, and prompt chain composition.
+A prompt engineering toolkit for building, testing, and evaluating LLM prompts. Versioned prompt templates with variable interpolation, response comparison and scoring with quality rubrics, and prompt chain composition.
 
 ## Quick Start
 
@@ -63,6 +63,9 @@ promptlab render template.yaml -v key1=value1 -v key2=value2
 
 # List variables in a template
 promptlab list-vars template.yaml
+
+# Validate a template file
+promptlab validate template.yaml
 
 # Run as a module
 python -m promptlab --help
@@ -186,14 +189,6 @@ chain.add_step(ChainStep(
 | `version` | int    | no       | Version number (default: 1)          |
 | `metadata`| dict   | no       | Arbitrary key-value metadata         |
 
-### Environment
-
-| Variable            | Description                      |
-|---------------------|----------------------------------|
-| `OPENAI_API_KEY`    | API key for OpenAI models        |
-| `ANTHROPIC_API_KEY` | API key for Anthropic models     |
-| `OLLAMA_HOST`       | Ollama server URL (default: localhost:11434) |
-
 ## Architecture
 
 ```
@@ -201,14 +196,15 @@ promptlab/
 ├── src/promptlab/
 │   ├── __init__.py        # Package version
 │   ├── __main__.py        # python -m promptlab entry point
-│   ├── cli.py             # Click CLI (render, list-vars, info)
+│   ├── cli.py             # Click CLI (render, list-vars, validate, info)
 │   ├── template.py        # PromptTemplate + TemplateRegistry
 │   ├── scoring.py         # ResponseMetrics + compare_responses
 │   └── chain.py           # PromptChain + ChainStep
 ├── tests/
 │   ├── conftest.py        # Shared fixtures
 │   ├── test_promptlab.py  # Unit tests
-│   └── test_integration.py# Integration tests
+│   ├── test_integration.py# Integration tests
+│   └── test_e2e.py        # End-to-end tests
 ├── pyproject.toml         # Build config, dependencies
 ├── Dockerfile             # Container image
 └── .github/workflows/
@@ -220,7 +216,7 @@ promptlab/
 - **PromptTemplate** — Versioned prompt with `{{ var }}` interpolation. Tracks variable names, supports creating new versions from existing templates.
 - **TemplateRegistry** — In-memory store for named templates with lookup by name.
 - **ResponseMetrics** — Captures latency, token count, cost, and quality rubric scores. Computes throughput and per-token cost.
-- **compare_responses** — Ranks multiple model responses across latency, throughput, cost, and quality.
+- **compare_responses** — Compares multiple responses across latency, throughput, cost, and quality to find the best performer in each dimension.
 - **PromptChain / ChainStep** — Composes templates into sequential pipelines where each step's output feeds into the next via transform functions.
 
 ### Dependencies

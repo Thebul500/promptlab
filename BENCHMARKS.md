@@ -37,7 +37,7 @@ Comparing 100 `ResponseMetrics` objects, each with 3 quality rubric scores:
 | 10,000 x `compare_responses(100)` | 0.718s | 13,922/sec |
 
 Each comparison evaluates 4 metrics (lowest latency, highest throughput, lowest cost, highest quality)
-across all 100 responses. At ~14k comparisons/sec, A/B testing evaluation is not a bottleneck.
+across all 100 responses. At ~14k comparisons/sec, response comparison is not a bottleneck.
 
 ## 4. Prompt Chain Execution
 
