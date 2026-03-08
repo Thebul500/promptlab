@@ -5,19 +5,23 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "promptlab"
 version = "0.1.0"
-description = "Prompt engineering toolkit. Version-controlled prompt templates with variable interpolation, A/B testing across models (OpenAI, Anthropic, Ollama), response scoring/evaluation metrics (latency, cost, quality rubrics), prompt chain composition, CLI + REST API. Python CLI tool."
+description = "Prompt engineering toolkit — render templates, run them against LLM providers (Ollama, Anthropic, OpenAI), compare results with timing/cost metrics."
 requires-python = ">=3.10"
 license = "MIT"
 readme = "README.md"
 dependencies = [
     "click>=8.0",
     "pyyaml>=6.0",
+    "httpx>=0.24",
 ]
 
 [project.scripts]
 promptlab = "promptlab.cli:main"
 
 [project.optional-dependencies]
+anthropic = ["anthropic>=0.25"]
+openai = ["openai>=1.0"]
+all = ["anthropic>=0.25", "openai>=1.0"]
 dev = ["pytest", "pytest-cov", "ruff", "mypy", "types-PyYAML", "bandit"]
 
 [tool.ruff]

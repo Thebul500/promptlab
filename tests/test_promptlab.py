@@ -65,6 +65,37 @@ def test_cli_list_vars(tmp_path):
     assert "topic" in result.output
 
 
+def test_cli_providers():
+    runner = CliRunner()
+    result = runner.invoke(main, ["providers"])
+    assert result.exit_code == 0
+    assert "ollama" in result.output
+    assert "anthropic" in result.output
+    assert "openai" in result.output
+
+
+def test_cli_help_shows_new_commands():
+    runner = CliRunner()
+    result = runner.invoke(main, ["--help"])
+    assert result.exit_code == 0
+    assert "run" in result.output
+    assert "compare" in result.output
+    assert "providers" in result.output
+    assert "render" in result.output
+    assert "list-vars" in result.output
+
+
+@pytest.mark.network
+def test_cli_run_ollama(tmp_path):
+    tmpl_file = tmp_path / "prompt.yaml"
+    tmpl_file.write_text('name: test\ncontent: "Say the word OK. Nothing else."')
+    runner = CliRunner()
+    result = runner.invoke(main, ["run", str(tmpl_file), "-p", "ollama"])
+    assert result.exit_code == 0
+    assert "ollama" in result.output
+    assert "Latency:" in result.output
+
+
 # --- Template ---
 
 

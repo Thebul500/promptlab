@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A prompt engineering toolkit for building, testing, and evaluating LLM prompts. Version-controlled prompt templates with variable interpolation, A/B testing across models, response scoring with quality rubrics, and prompt chain composition.
+A CLI tool for running prompt templates against LLM providers (Ollama, Anthropic, OpenAI) and comparing results. Render templates with variables, A/B test across models, and get timing/cost metrics.
 
 ## Quick Start
 
@@ -14,63 +14,138 @@ git clone https://github.com/Thebul500/promptlab.git
 cd promptlab
 pip install -e .
 
+# Check available providers
+promptlab providers
+
 # Create a prompt template
-cat > greeting.yaml << 'EOF'
-name: greeting
+cat > summarize.yaml << 'EOF'
+name: summarize
 version: 1
-content: "Hello {{ name }}, welcome to {{ place }}!"
+content: "Summarize the following {{ doc_type }} in 2 sentences: {{ text }}"
 EOF
 
-# Render it
-promptlab render greeting.yaml -v name=Alice -v place=Wonderland
-# Output: Hello Alice, welcome to Wonderland!
+# Render the template (no LLM call — just variable substitution)
+promptlab render summarize.yaml -v doc_type=article -v text="The quick brown fox..."
 
-# List template variables
-promptlab list-vars greeting.yaml
-# Output:
-# name
-# place
+# Run against Ollama
+promptlab run summarize.yaml -v doc_type=article -v text="The quick brown fox..." -p ollama
+
+# Compare across all available providers
+promptlab compare summarize.yaml -v doc_type=article -v text="The quick brown fox..."
 ```
 
 ## Installation
 
-### From source
-
 ```bash
-git clone https://github.com/Thebul500/promptlab.git
-cd promptlab
+# Core (includes Ollama support via httpx)
 pip install -e .
+
+# With Anthropic SDK
+pip install -e ".[anthropic]"
+
+# With OpenAI SDK
+pip install -e ".[openai]"
+
+# All providers + dev tools
+pip install -e ".[all,dev]"
 ```
 
-### With development dependencies
+## Providers
+
+| Provider  | Backend | Auth | Cost |
+|-----------|---------|------|------|
+| `ollama`  | Self-hosted Ollama server | None (set `OLLAMA_HOST`) | Free |
+| `anthropic` | Anthropic API | `ANTHROPIC_API_KEY` env var | Per-token |
+| `openai`  | OpenAI API | `OPENAI_API_KEY` env var | Per-token |
+
+Default Ollama host: `http://10.0.3.144:11434` (override with `OLLAMA_HOST`).
+
+## CLI Commands
 
 ```bash
-pip install -e .[dev]
-```
-
-This installs pytest, ruff, mypy, and bandit for testing and linting.
-
-## Usage
-
-### CLI
-
-```bash
-# Show version
-promptlab info
-
-# Render a template with variables
+# Render a template with variable substitution (no LLM)
 promptlab render template.yaml -v key1=value1 -v key2=value2
 
 # List variables in a template
 promptlab list-vars template.yaml
 
-# Run as a module
-python -m promptlab --help
+# Run a prompt against specific providers
+promptlab run template.yaml -v topic=AI -p ollama -p anthropic
+
+# Run against ALL available providers and compare
+promptlab compare template.yaml -v topic=AI
+
+# List available providers and their status
+promptlab providers
+
+# Show version
+promptlab info
 ```
 
-### Template Files
+## Python API
 
-Templates are YAML files with `name`, `version`, and `content` fields. Variables use `{{ variable }}` syntax:
+### Templates
+
+```python
+from promptlab.template import PromptTemplate
+
+tmpl = PromptTemplate(
+    name="code_review",
+    content="Review this {{ language }} code: {{ code }}",
+)
+
+# Render with variables
+prompt = tmpl.render(language="Python", code="x = 1")
+
+# Check required variables
+print(tmpl.variables)  # {'language', 'code'}
+```
+
+### Providers
+
+```python
+from promptlab.providers import OllamaProvider, get_available_providers
+
+# Use Ollama directly
+provider = OllamaProvider(host="http://localhost:11434")
+result = provider.generate("Explain quicksort in one sentence.")
+print(result.text)
+print(f"Latency: {result.latency_ms:.0f}ms, Tokens: {result.token_count}")
+
+# Auto-detect all configured providers
+providers = get_available_providers()
+```
+
+### A/B Testing
+
+```python
+from promptlab.providers import OllamaProvider, AnthropicProvider
+from promptlab.runner import run_prompt, compare_results
+from promptlab.template import PromptTemplate
+
+tmpl = PromptTemplate(name="test", content="Explain {{ topic }} simply.")
+providers = [OllamaProvider(), AnthropicProvider()]
+
+results = run_prompt(tmpl, {"topic": "recursion"}, providers)
+report = compare_results(results)
+print(report.summary())
+```
+
+### Response Scoring
+
+```python
+from promptlab.scoring import ResponseMetrics, compare_responses
+
+m = ResponseMetrics(latency_ms=450.0, token_count=150, cost_usd=0.003)
+m.add_score("relevance", 0.9)
+m.add_score("coherence", 0.85)
+print(f"Throughput: {m.tokens_per_second:.0f} tok/s")
+print(f"Avg quality: {m.average_score:.2f}")
+```
+
+## Template Format
+
+Templates are YAML files:
 
 ```yaml
 name: code_review
@@ -85,171 +160,32 @@ content: |
   Provide specific suggestions for improvement.
 ```
 
-### Python API
-
-#### Templates
-
-```python
-from promptlab.template import PromptTemplate, TemplateRegistry
-
-# Create a template
-tmpl = PromptTemplate(
-    name="summarize",
-    content="Summarize this {{ doc_type }}: {{ text }}",
-    version=1,
-)
-
-# Render with variables
-output = tmpl.render(doc_type="article", text="...")
-
-# Check required variables
-print(tmpl.variables)  # {'doc_type', 'text'}
-
-# Version a template
-v2 = tmpl.new_version("Summarize this {{ doc_type }} in {{ style }} style: {{ text }}")
-
-# Use a registry to manage templates
-registry = TemplateRegistry()
-registry.register(tmpl)
-registry.register(v2)
-found = registry.get("summarize")
-```
-
-#### Response Scoring
-
-```python
-from promptlab.scoring import ResponseMetrics, compare_responses
-
-# Record metrics for a response
-metrics = ResponseMetrics(
-    latency_ms=450.0,
-    token_count=150,
-    cost_usd=0.003,
-)
-
-# Add quality rubric scores (0.0 to 1.0)
-metrics.add_score("relevance", 0.9)
-metrics.add_score("coherence", 0.85)
-
-# Computed properties
-print(metrics.tokens_per_second)  # ~333.3
-print(metrics.cost_per_token)     # 0.00002
-print(metrics.average_score)      # 0.875
-
-# Compare responses from different models
-responses = [model_a_metrics, model_b_metrics, model_c_metrics]
-best = compare_responses(responses)
-# {'lowest_latency': 0, 'highest_throughput': 2, 'lowest_cost': 1, 'highest_quality': 0}
-```
-
-#### Prompt Chains
-
-```python
-from promptlab.chain import PromptChain, ChainStep
-from promptlab.template import PromptTemplate
-
-# Build a multi-step pipeline
-chain = PromptChain(name="research")
-
-chain.add_step(ChainStep(
-    name="extract",
-    template=PromptTemplate(name="s1", content="Extract key facts from: {{ text }}"),
-))
-
-chain.add_step(ChainStep(
-    name="summarize",
-    template=PromptTemplate(name="s2", content="Summarize these facts: {{ previous_output }}"),
-))
-
-# Execute — each step's output feeds into the next as 'previous_output'
-results = chain.execute({"text": "Long document..."})
-
-# Custom transforms between steps
-def parse_facts(output: str) -> dict[str, str]:
-    return {"facts": output, "format": "bullet_points"}
-
-chain.add_step(ChainStep(
-    name="extract",
-    template=PromptTemplate(name="s1", content="Extract facts from: {{ text }}"),
-    transform=parse_facts,
-))
-```
-
-## Configuration
-
-### Template Format
-
-| Field     | Type   | Required | Description                          |
-|-----------|--------|----------|--------------------------------------|
-| `name`    | string | yes      | Template identifier                  |
-| `content` | string | yes      | Prompt text with `{{ var }}` placeholders |
-| `version` | int    | no       | Version number (default: 1)          |
-| `metadata`| dict   | no       | Arbitrary key-value metadata         |
-
-### Environment
-
-| Variable            | Description                      |
-|---------------------|----------------------------------|
-| `OPENAI_API_KEY`    | API key for OpenAI models        |
-| `ANTHROPIC_API_KEY` | API key for Anthropic models     |
-| `OLLAMA_HOST`       | Ollama server URL (default: localhost:11434) |
+Variables use `{{ variable }}` syntax (Jinja2-style).
 
 ## Architecture
 
 ```
-promptlab/
-├── src/promptlab/
-│   ├── __init__.py        # Package version
-│   ├── __main__.py        # python -m promptlab entry point
-│   ├── cli.py             # Click CLI (render, list-vars, info)
-│   ├── template.py        # PromptTemplate + TemplateRegistry
-│   ├── scoring.py         # ResponseMetrics + compare_responses
-│   └── chain.py           # PromptChain + ChainStep
-├── tests/
-│   ├── conftest.py        # Shared fixtures
-│   ├── test_promptlab.py  # Unit tests
-│   └── test_integration.py# Integration tests
-├── pyproject.toml         # Build config, dependencies
-├── Dockerfile             # Container image
-└── .github/workflows/
-    └── ci.yml             # CI pipeline (pytest, ruff, mypy, bandit)
+src/promptlab/
+  __init__.py        # Package version
+  cli.py             # Click CLI (render, run, compare, providers)
+  template.py        # PromptTemplate + TemplateRegistry
+  providers.py       # OllamaProvider, AnthropicProvider, OpenAIProvider
+  runner.py          # A/B testing runner + comparison reports
+  scoring.py         # ResponseMetrics + compare_responses
+  chain.py           # PromptChain + ChainStep (prompt pipelines)
 ```
-
-### Core Components
-
-- **PromptTemplate** — Versioned prompt with `{{ var }}` interpolation. Tracks variable names, supports creating new versions from existing templates.
-- **TemplateRegistry** — In-memory store for named templates with lookup by name.
-- **ResponseMetrics** — Captures latency, token count, cost, and quality rubric scores. Computes throughput and per-token cost.
-- **compare_responses** — Ranks multiple model responses across latency, throughput, cost, and quality.
-- **PromptChain / ChainStep** — Composes templates into sequential pipelines where each step's output feeds into the next via transform functions.
-
-### Dependencies
-
-- [Click](https://click.palletsprojects.com/) — CLI framework
-- [PyYAML](https://pyyaml.org/) — YAML template parsing
 
 ## Development
 
 ```bash
-# Install dev dependencies
-pip install -e .[dev]
-
-# Run tests
-pytest -v
-
-# Run tests with coverage
-pytest --cov=promptlab -v
-
-# Lint
+pip install -e ".[dev]"
+pytest -v                                   # all tests
+pytest -v -m "not network"                  # unit tests only (no Ollama needed)
+pytest --cov=promptlab --cov-report=term    # with coverage
 ruff check src/
-
-# Type check
 mypy src/promptlab/
-
-# Security scan
-bandit -r src/promptlab/ -q
 ```
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT

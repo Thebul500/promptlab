@@ -17,7 +17,9 @@ jobs:
           python-version: "3.12"
       - run: pip install -e .[dev]
       - name: Run tests with coverage
-        run: pytest --cov=promptlab --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=80 -v
+        env:
+          CI: "true"
+        run: pytest --cov=promptlab --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=70 -v
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4

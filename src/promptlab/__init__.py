@@ -1,3 +1,7 @@
-"""promptlab — Prompt engineering toolkit. Version-controlled prompt templates with variable interpolation, A/B testing across models (OpenAI, Anthropic, Ollama), response scoring/evaluation metrics (latency, cost, quality rubrics), prompt chain composition, CLI + REST API. Python CLI tool."""
+"""promptlab -- Prompt engineering toolkit with LLM integration.
+
+Render prompt templates, run them against LLM providers (Ollama, Anthropic,
+OpenAI), and compare results with timing and cost metrics.
+"""
 
 __version__ = "0.1.0"
