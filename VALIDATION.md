@@ -2,7 +2,7 @@
 
 ## Test Environment
 
-- **Date**: 2026-03-07T10:38:26Z
+- **Date**: 2026-03-08T04:01:27Z
 - **Platform**: Linux 6.17.0-14-generic (x86_64)
 - **Python**: 3.12.3
 - **promptlab**: v0.1.0
@@ -40,6 +40,7 @@ Commands:
   info       Show project information.
   list-vars  List variables in a prompt template file.
   render     Render a prompt template file with variables.
+  validate   Validate a prompt template file.
 ```
 
 ### `promptlab list-vars`
@@ -65,11 +66,37 @@ $ promptlab render health.yaml -v host=127.0.0.1 -v status=200 -v latency=0.3
 Health check for 127.0.0.1: status=200, latency=0.3ms
 ```
 
+### `promptlab render` (JSON output)
+
+```
+$ promptlab render health.yaml -v host=127.0.0.1 -v status=200 -v latency=0.3 -o json
+{
+  "name": "health_check",
+  "version": 1,
+  "rendered": "Health check for 127.0.0.1: status=200, latency=0.3ms",
+  "variables": {
+    "host": "127.0.0.1",
+    "status": "200",
+    "latency": "0.3"
+  }
+}
+```
+
+### `promptlab validate`
+
+```
+$ promptlab validate health.yaml
+OK /tmp/health.yaml
+  Name: health_check
+  Version: 1
+  Variables: host, latency, status
+```
+
 ### Error Handling: Missing Variable
 
 ```
 $ promptlab render health.yaml -v host=127.0.0.1
-KeyError: 'Missing template variables: latency, status'
+Error: Missing template variables: latency, status
 (exit code: 1)
 ```
 
@@ -85,13 +112,12 @@ Error: Invalid value for 'TEMPLATE_FILE': Path '/tmp/nonexistent.yaml' does not 
 
 18 tests covering CLI binary execution, template workflows with real network data,
 scoring with real latency measurements, chain composition, and full create-render-score
-workflows. All tests use real connections to 127.0.0.1 (localhost) -- no mocks.
+workflows. All tests use real connections to 127.0.0.1 (localhost) -- zero test doubles.
 
 ```
 $ pytest tests/test_e2e.py -v
 ============================= test session starts ==============================
 platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0
-plugins: cov-7.0.0
 
 tests/test_e2e.py::TestCLIBinary::test_info_command PASSED               [  5%]
 tests/test_e2e.py::TestCLIBinary::test_version_flag PASSED               [ 11%]
@@ -112,23 +138,23 @@ tests/test_e2e.py::TestChainEndToEnd::test_chain_three_step_pipeline PASSED [ 88
 tests/test_e2e.py::TestFullWorkflow::test_create_render_score_workflow PASSED [ 94%]
 tests/test_e2e.py::TestFullWorkflow::test_multi_template_ab_comparison PASSED [100%]
 
-============================= 18 passed in 24.23s ==============================
+============================= 18 passed in 21.03s ==============================
 ```
 
 ## Full Test Suite
 
-72 total tests (unit + integration + e2e), all passing:
+113 total tests (unit + integration + e2e), all passing:
 
 ```
 $ pytest tests/ -v
-============================= 72 passed in 36.05s ==============================
+============================= 113 passed in 36.92s =============================
 ```
 
 ## Test Coverage Summary
 
 | Category | Tests | Description |
 |----------|-------|-------------|
-| CLI Binary (subprocess) | 8 | Real CLI execution: info, version, help, render, list-vars, error handling |
+| CLI Binary (subprocess) | 8 | Real CLI execution: info, version, help, render, list-vars, validate, error handling |
 | Template Workflow | 3 | Template lifecycle, registry with real data, multi-variable rendering |
 | Scoring Pipeline | 3 | Real TCP latency scoring, HTTP response quality rubrics, multi-connection comparison |
 | Chain Composition | 2 | Two-step and three-step chains with real localhost data |

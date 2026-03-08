@@ -1,4 +1,4 @@
-"""End-to-end tests for promptlab — real CLI execution, no mocks.
+"""End-to-end tests for promptlab — real CLI execution against real targets.
 
 These tests exercise the full promptlab toolchain:
   1. CLI commands via subprocess (actual binary)
