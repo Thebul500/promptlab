@@ -1,60 +1,47 @@
-"""A/B testing runner — run prompts across multiple providers and compare results."""
+"""A/B testing runner — run prompts across multiple providers and compare."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from .providers import GenerateResult, Provider
-from .scoring import ResponseMetrics, compare_responses
 from .template import PromptTemplate
 
 
 @dataclass
-class RunResult:
-    """Result of running a prompt against a single provider."""
-
-    provider_name: str
-    model: str
-    prompt: str
-    result: GenerateResult
-    metrics: ResponseMetrics
-
-
-@dataclass
 class ComparisonReport:
-    """Report comparing results across multiple providers."""
+    """Results from running a prompt across multiple providers."""
 
-    results: list[RunResult]
-    best: dict[str, int] = field(default_factory=dict)
+    prompt: str
+    results: list[GenerateResult] = field(default_factory=list)
 
     def summary(self) -> str:
-        """Generate a human-readable comparison summary."""
+        """Human-readable comparison summary."""
         if not self.results:
-            return "No results to compare."
+            return "No results."
 
-        lines = ["=== Prompt Comparison Report ===", ""]
+        lines = ["Provider Comparison:", ""]
+        lines.append(f"  {'Provider':<15} {'Model':<30} {'Latency':>10} {'Tokens':>8} {'Cost':>10} {'Status'}")
+        lines.append("  " + "-" * 90)
 
-        for i, r in enumerate(self.results):
-            lines.append(f"--- [{i}] {r.provider_name} ({r.model}) ---")
-            lines.append(f"  Latency:       {r.result.latency_ms:.0f}ms")
-            lines.append(f"  Tokens:        {r.result.token_count} "
-                         f"(in={r.result.input_tokens}, out={r.result.output_tokens})")
-            if r.result.cost_usd > 0:
-                lines.append(f"  Cost:          ${r.result.cost_usd:.6f}")
-            lines.append(f"  Throughput:    {r.metrics.tokens_per_second:.1f} tok/s")
-            # Truncate response for display
-            preview = r.result.text[:200].replace("\n", " ")
-            if len(r.result.text) > 200:
-                preview += "..."
-            lines.append(f"  Response:      {preview}")
+        for r in self.results:
+            if r.error:
+                lines.append(f"  {r.provider:<15} {r.model:<30} {'':>10} {'':>8} {'':>10} ERROR: {r.error}")
+            else:
+                latency = f"{r.latency_ms:.0f}ms"
+                tokens = str(r.output_tokens)
+                cost = f"${r.cost_usd:.6f}" if r.cost_usd > 0 else "free"
+                lines.append(f"  {r.provider:<15} {r.model:<30} {latency:>10} {tokens:>8} {cost:>10} OK")
+
+        # Winner summary
+        successful = [r for r in self.results if not r.error]
+        if len(successful) >= 2:
             lines.append("")
-
-        if self.best:
-            lines.append("=== Best By Metric ===")
-            for metric, idx in self.best.items():
-                r = self.results[idx]
-                lines.append(f"  {metric}: [{idx}] {r.provider_name} ({r.model})")
+            fastest = min(successful, key=lambda r: r.latency_ms)
+            lines.append(f"  Fastest: {fastest.provider} ({fastest.latency_ms:.0f}ms)")
+            cheapest = min(successful, key=lambda r: r.cost_usd)
+            if cheapest.cost_usd > 0:
+                lines.append(f"  Cheapest: {cheapest.provider} (${cheapest.cost_usd:.6f})")
 
         return "\n".join(lines)
 
@@ -63,66 +50,16 @@ def run_prompt(
     template: PromptTemplate,
     variables: dict[str, str],
     providers: list[Provider],
-    n: int = 1,
-    **kwargs: Any,
-) -> list[RunResult]:
-    """Render a template and send to each provider, collecting results.
+) -> ComparisonReport:
+    """Render a template and run it against each provider.
 
-    Args:
-        template: The prompt template to render.
-        variables: Variables to substitute into the template.
-        providers: List of LLM providers to query.
-        n: Number of times to run each provider (for averaging). Currently runs once.
-        **kwargs: Additional kwargs passed to each provider's generate().
-
-    Returns:
-        List of RunResult objects, one per provider.
+    Returns a ComparisonReport with results from all providers.
     """
-    prompt = template.render(**variables)
-    results: list[RunResult] = []
+    rendered = template.render(**variables)
+    report = ComparisonReport(prompt=rendered)
 
     for provider in providers:
-        # Run n times and take the last result (could average in the future)
-        result = None
-        for _ in range(n):
-            result = provider.generate(prompt, **kwargs)
+        result = provider.generate(rendered)
+        report.results.append(result)
 
-        if result is None:
-            continue
-
-        metrics = ResponseMetrics(
-            latency_ms=result.latency_ms,
-            token_count=result.output_tokens if result.output_tokens else result.token_count,
-            cost_usd=result.cost_usd,
-        )
-
-        results.append(RunResult(
-            provider_name=provider.name,
-            model=result.model,
-            prompt=prompt,
-            result=result,
-            metrics=metrics,
-        ))
-
-    return results
-
-
-def run_prompt_text(
-    prompt: str,
-    providers: list[Provider],
-    **kwargs: Any,
-) -> list[RunResult]:
-    """Run a raw prompt string against providers (no template rendering)."""
-    template = PromptTemplate(name="raw", content=prompt)
-    return run_prompt(template, {}, providers, **kwargs)
-
-
-def compare_results(results: list[RunResult]) -> ComparisonReport:
-    """Compare results across providers and identify the best for each metric."""
-    if not results:
-        return ComparisonReport(results=[])
-
-    metrics_list = [r.metrics for r in results]
-    best = compare_responses(metrics_list)
-
-    return ComparisonReport(results=results, best=best)
+    return report

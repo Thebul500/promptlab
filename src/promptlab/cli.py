@@ -1,10 +1,5 @@
 """Command-line interface for promptlab."""
 
-from __future__ import annotations
-
-import sys
-from typing import Any
-
 import click
 import yaml
 
@@ -12,33 +7,10 @@ from . import __version__
 from .template import PromptTemplate
 
 
-def _parse_vars(var: tuple[str, ...]) -> dict[str, str]:
-    """Parse --var key=value pairs into a dict."""
-    variables: dict[str, str] = {}
-    for v in var:
-        key, sep, value = v.partition("=")
-        if not sep:
-            raise click.BadParameter(f"Variable must be key=value, got: {v}")
-        variables[key] = value
-    return variables
-
-
-def _load_template(template_file: str) -> PromptTemplate:
-    """Load a PromptTemplate from a YAML file."""
-    with open(template_file) as f:
-        data = yaml.safe_load(f)
-
-    return PromptTemplate(
-        name=data.get("name", "unnamed"),
-        content=data["content"],
-        version=data.get("version", 1),
-    )
-
-
 @click.group()
 @click.version_option(version=__version__, prog_name="promptlab")
 def main() -> None:
-    """promptlab - Prompt engineering toolkit with LLM integration."""
+    """promptlab - Prompt engineering toolkit with LLM A/B testing."""
     pass
 
 
@@ -64,7 +36,6 @@ def list_vars(template_file: str) -> None:
     """List variables in a prompt template file."""
     with open(template_file) as f:
         data = yaml.safe_load(f)
-
     tmpl = PromptTemplate(name="tmp", content=data["content"])
     for v in sorted(tmpl.variables):
         click.echo(v)
@@ -73,28 +44,15 @@ def list_vars(template_file: str) -> None:
 @main.command()
 @click.argument("template_file", type=click.Path(exists=True))
 @click.option("--var", "-v", multiple=True, help="Variable in key=value format.")
-@click.option(
-    "--provider", "-p",
-    multiple=True,
-    help="Provider to use (ollama, anthropic, openai). Can specify multiple.",
-)
-@click.option("--model", "-m", default=None, help="Override the default model for all providers.")
-def run(
-    template_file: str,
-    var: tuple[str, ...],
-    provider: tuple[str, ...],
-    model: str | None,
-) -> None:
-    """Run a prompt template against LLM providers.
-
-    Renders the template with the given variables, sends to each specified
-    provider, and prints the responses with timing data.
-    """
+@click.option("--provider", "-p", multiple=True, help="Provider name (ollama, anthropic, openai).")
+@click.option("--model", "-m", default=None, help="Override model name.")
+def run(template_file: str, var: tuple[str, ...], provider: tuple[str, ...], model: str | None) -> None:
+    """Run a prompt template against LLM provider(s)."""
     from .providers import get_available_providers, get_provider
-    from .runner import run_prompt
 
     tmpl = _load_template(template_file)
     variables = _parse_vars(var)
+    rendered = tmpl.render(**variables)
 
     # Resolve providers
     if provider:
@@ -102,90 +60,87 @@ def run(
     else:
         providers = get_available_providers()
         if not providers:
-            click.echo("Error: No providers available. Set OLLAMA_HOST, ANTHROPIC_API_KEY, or OPENAI_API_KEY.", err=True)
-            sys.exit(1)
+            click.echo("No providers available. Set OLLAMA_HOST, ANTHROPIC_API_KEY, or OPENAI_API_KEY.")
+            raise SystemExit(1)
 
-    gen_kwargs: dict[str, Any] = {}
-    if model:
-        gen_kwargs["model"] = model
+    click.echo(f"Prompt: {rendered[:100]}{'...' if len(rendered) > 100 else ''}\n")
 
-    results = run_prompt(tmpl, variables, providers, **gen_kwargs)
-
-    for r in results:
-        click.echo(f"\n--- {r.provider_name} ({r.model}) ---")
-        click.echo(f"Latency: {r.result.latency_ms:.0f}ms | "
-                    f"Tokens: {r.result.token_count} | "
-                    f"Throughput: {r.metrics.tokens_per_second:.1f} tok/s")
-        if r.result.cost_usd > 0:
-            click.echo(f"Cost: ${r.result.cost_usd:.6f}")
-        click.echo(f"\n{r.result.text}")
+    for p in providers:
+        kwargs = {"model": model} if model else {}
+        result = p.generate(rendered, **kwargs)
+        if result.error:
+            click.echo(f"[{result.provider}] ERROR: {result.error}\n")
+        else:
+            click.echo(f"[{result.provider}/{result.model}] ({result.latency_ms:.0f}ms, {result.output_tokens} tokens)")
+            click.echo(result.text)
+            click.echo()
 
 
 @main.command()
 @click.argument("template_file", type=click.Path(exists=True))
 @click.option("--var", "-v", multiple=True, help="Variable in key=value format.")
-@click.option("--model", "-m", default=None, help="Override the default model for all providers.")
-def compare(
-    template_file: str,
-    var: tuple[str, ...],
-    model: str | None,
-) -> None:
-    """Run a prompt against ALL available providers and compare results.
-
-    Automatically detects which providers are configured (Ollama reachable,
-    API keys set) and runs the prompt against all of them.
-    """
+def compare(template_file: str, var: tuple[str, ...]) -> None:
+    """Run a prompt against ALL available providers and compare results."""
     from .providers import get_available_providers
-    from .runner import compare_results, run_prompt
+    from .runner import run_prompt
 
     tmpl = _load_template(template_file)
     variables = _parse_vars(var)
 
     providers = get_available_providers()
     if not providers:
-        click.echo("Error: No providers available.", err=True)
-        sys.exit(1)
+        click.echo("No providers available. Set OLLAMA_HOST, ANTHROPIC_API_KEY, or OPENAI_API_KEY.")
+        raise SystemExit(1)
 
-    click.echo(f"Running against {len(providers)} provider(s): "
-               f"{', '.join(p.name for p in providers)}")
+    click.echo(f"Running against {len(providers)} provider(s)...\n")
+    report = run_prompt(tmpl, variables, providers)
+
+    click.echo(report.summary())
     click.echo()
 
-    gen_kwargs: dict[str, Any] = {}
-    if model:
-        gen_kwargs["model"] = model
-
-    results = run_prompt(tmpl, variables, providers, **gen_kwargs)
-    report = compare_results(results)
-    click.echo(report.summary())
+    # Show responses
+    for r in report.results:
+        if not r.error:
+            click.echo(f"--- {r.provider}/{r.model} ---")
+            click.echo(r.text[:500])
+            click.echo()
 
 
 @main.command()
 def providers() -> None:
-    """List available LLM providers and their status."""
-    from .providers import AnthropicProvider, OllamaProvider, OpenAIProvider
+    """List available LLM providers."""
+    from .providers import ALL_PROVIDERS
 
-    click.echo("=== LLM Providers ===\n")
+    for cls in ALL_PROVIDERS:
+        p = cls()
+        status = "available" if p.is_available() else "not configured"
+        detail = ""
+        if cls.name == "ollama":
+            detail = f" ({p.host})"
+        elif cls.name == "anthropic":
+            detail = " (ANTHROPIC_API_KEY)" if p.is_available() else " (set ANTHROPIC_API_KEY)"
+        elif cls.name == "openai":
+            detail = " (OPENAI_API_KEY)" if p.is_available() else " (set OPENAI_API_KEY)"
+        click.echo(f"  {cls.name:<15} {status}{detail}")
 
-    # Ollama
-    ollama = OllamaProvider()
-    available = ollama.is_available()
-    status = "AVAILABLE" if available else "UNAVAILABLE"
-    click.echo(f"  ollama:    {status}")
-    click.echo(f"             Host: {ollama.host}")
-    if available:
-        models = ollama.list_models()
-        click.echo(f"             Models: {', '.join(models) if models else 'none'}")
-    click.echo()
 
-    # Anthropic
-    anthropic_prov = AnthropicProvider()
-    status = "CONFIGURED" if anthropic_prov.is_available() else "NOT CONFIGURED (set ANTHROPIC_API_KEY)"
-    click.echo(f"  anthropic: {status}")
-    click.echo(f"             Model: {anthropic_prov.default_model}")
-    click.echo()
+def _load_template(path: str) -> PromptTemplate:
+    """Load a PromptTemplate from a YAML file."""
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    return PromptTemplate(
+        name=data.get("name", "unnamed"),
+        content=data["content"],
+        version=data.get("version", 1),
+    )
 
-    # OpenAI
-    openai_prov = OpenAIProvider()
-    status = "CONFIGURED" if openai_prov.is_available() else "NOT CONFIGURED (set OPENAI_API_KEY)"
-    click.echo(f"  openai:    {status}")
-    click.echo(f"             Model: {openai_prov.default_model}")
+
+def _parse_vars(var: tuple[str, ...]) -> dict[str, str]:
+    """Parse key=value variable pairs."""
+    variables = {}
+    for v in var:
+        key, _, value = v.partition("=")
+        if not value and not _:
+            raise click.BadParameter(f"Variable must be key=value, got: {v}")
+        variables[key] = value
+    return variables
