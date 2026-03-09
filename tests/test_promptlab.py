@@ -259,3 +259,171 @@ def test_chain_empty():
     chain = PromptChain(name="empty")
     assert chain.execute({}) == []
     assert len(chain) == 0
+
+
+# --- CLI: history, --score, persistence ---
+
+
+def test_cli_help_shows_history():
+    runner = CliRunner()
+    result = runner.invoke(main, ["--help"])
+    assert result.exit_code == 0
+    assert "history" in result.output
+
+
+def test_cli_history_empty(tmp_path):
+    """history command with empty DB shows no runs."""
+    from unittest.mock import patch
+    import promptlab.storage as storage_mod
+
+    original_default = storage_mod.DEFAULT_DB_PATH
+    storage_mod.DEFAULT_DB_PATH = tmp_path / "test.db"
+    try:
+        runner = CliRunner()
+        result = runner.invoke(main, ["history"])
+        assert result.exit_code == 0
+        assert "No runs found" in result.output
+    finally:
+        storage_mod.DEFAULT_DB_PATH = original_default
+
+
+def test_cli_run_persists_to_storage(tmp_path):
+    """run command should persist results to SQLite."""
+    from unittest.mock import patch
+    from promptlab.providers.sync import GenerateResult
+    from promptlab.storage import Storage
+    import promptlab.storage as storage_mod
+
+    tmpl_file = tmp_path / "prompt.yaml"
+    tmpl_file.write_text('name: persist_test\ncontent: "Hello {{ name }}"')
+
+    mock_result = GenerateResult(
+        text="Hi there", provider="ollama", model="qwen3:14b",
+        latency_ms=500, output_tokens=10,
+    )
+
+    original_default = storage_mod.DEFAULT_DB_PATH
+    storage_mod.DEFAULT_DB_PATH = tmp_path / "test.db"
+    try:
+        with patch("promptlab.providers.sync.OllamaSyncProvider.generate", return_value=mock_result):
+            runner = CliRunner()
+            result = runner.invoke(main, [
+                "run", str(tmpl_file),
+                "-v", "name=World",
+                "-p", "ollama",
+            ])
+
+        assert result.exit_code == 0
+        store = Storage(db_path=tmp_path / "test.db")
+        runs = store.list_runs()
+        assert len(runs) >= 1
+        latest = runs[0]
+        assert latest["template_name"] == "persist_test"
+        assert latest["provider"] == "ollama"
+        assert latest["response_text"] == "Hi there"
+        store.close()
+    finally:
+        storage_mod.DEFAULT_DB_PATH = original_default
+
+
+def test_cli_run_no_save_flag(tmp_path):
+    """--no-save flag should skip persistence."""
+    from unittest.mock import patch
+    from promptlab.providers.sync import GenerateResult
+
+    tmpl_file = tmp_path / "prompt.yaml"
+    tmpl_file.write_text('name: nosave\ncontent: "Hello {{ name }}"')
+
+    mock_result = GenerateResult(
+        text="Hi there", provider="ollama", model="qwen3:14b",
+        latency_ms=500, output_tokens=10,
+    )
+
+    with patch("promptlab.providers.sync.OllamaSyncProvider.generate", return_value=mock_result):
+        runner = CliRunner()
+        result = runner.invoke(main, [
+            "run", str(tmpl_file),
+            "-v", "name=World",
+            "-p", "ollama",
+            "--no-save",
+        ])
+
+    assert result.exit_code == 0
+    assert "Hi there" in result.output
+
+
+def test_cli_run_with_score_flag(tmp_path):
+    """--score flag should display scoring results."""
+    from unittest.mock import patch
+    from promptlab.providers.sync import GenerateResult
+    from promptlab.storage import Storage
+    import promptlab.storage as storage_mod
+
+    tmpl_file = tmp_path / "prompt.yaml"
+    tmpl_file.write_text('name: score_test\ncontent: "Hello {{ name }}"')
+
+    mock_result = GenerateResult(
+        text="Hi there, welcome!", provider="ollama", model="qwen3:14b",
+        latency_ms=500, output_tokens=10,
+    )
+
+    original_default = storage_mod.DEFAULT_DB_PATH
+    storage_mod.DEFAULT_DB_PATH = tmp_path / "test.db"
+    try:
+        with patch("promptlab.providers.sync.OllamaSyncProvider.generate", return_value=mock_result):
+            runner = CliRunner()
+            result = runner.invoke(main, [
+                "run", str(tmpl_file),
+                "-v", "name=World",
+                "-p", "ollama",
+                "--score",
+            ])
+
+        assert result.exit_code == 0
+        assert "Scores:" in result.output
+        assert "latency=" in result.output
+        assert "cost=" in result.output
+        assert "avg:" in result.output
+
+        # Scores should be persisted
+        store = Storage(db_path=tmp_path / "test.db")
+        runs = store.list_runs()
+        assert len(runs) >= 1
+        scores = store.get_scores(runs[0]["id"])
+        assert len(scores) == 4  # latency, cost, length, json_valid
+        store.close()
+    finally:
+        storage_mod.DEFAULT_DB_PATH = original_default
+
+
+def test_cli_history_shows_runs(tmp_path):
+    """history command shows persisted runs."""
+    from promptlab.storage import Storage
+    import promptlab.storage as storage_mod
+
+    original_default = storage_mod.DEFAULT_DB_PATH
+    storage_mod.DEFAULT_DB_PATH = tmp_path / "test.db"
+    try:
+        store = Storage(db_path=tmp_path / "test.db")
+        store.save_run(
+            template_name="greeting",
+            template_version=1,
+            provider="ollama",
+            model="qwen3:14b",
+            variables={"name": "Alice"},
+            rendered_prompt="Hello Alice",
+            response_text="Hi!",
+            tokens_out=5,
+            latency_ms=200,
+        )
+        store.close()
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["history"])
+
+        assert result.exit_code == 0
+        assert "ollama" in result.output
+        assert "qwen3:14b" in result.output
+        assert "200ms" in result.output
+    finally:
+        storage_mod.DEFAULT_DB_PATH = original_default
