@@ -1,11 +1,19 @@
 """Command-line interface for promptlab."""
 
+from __future__ import annotations
+
 import datetime
+from typing import TYPE_CHECKING
+
 import click
 import yaml
 
 from . import __version__
 from .template import PromptTemplate
+
+if TYPE_CHECKING:
+    from .providers.sync import GenerateResult
+    from .storage import Storage
 
 
 @click.group()
