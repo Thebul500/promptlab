@@ -1,0 +1,3 @@
+name: hello
+version: 1
+content: "Say hello to {{ name }} in exactly one sentence."

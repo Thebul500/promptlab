@@ -9,6 +9,7 @@ Targets:
   - Full pipeline: template -> render -> provider -> score -> persist
 """
 
+import asyncio
 import os
 import socket
 import sqlite3
@@ -469,13 +470,12 @@ class TestOllamaProviderIntegration:
     """Test Ollama provider against the live server — minimal calls."""
 
     @requires_ollama
-    @pytest.mark.asyncio
-    async def test_send_prompt_and_validate_response(self):
+    def test_send_prompt_and_validate_response(self):
         """Send one real prompt — validate all response fields."""
         provider = OllamaProvider(model=OLLAMA_MODEL, base_url=OLLAMA_HOST)
-        resp = await provider.send(
+        resp = asyncio.run(provider.send(
             "What is 2+2? Reply with just the number. /no_think", temperature=0
-        )
+        ))
 
         assert resp.error is None, f"Provider error: {resp.error}"
         assert resp.text.strip() != ""
@@ -493,11 +493,10 @@ class TestOllamaProviderIntegration:
         assert resp.raw.get("model") == OLLAMA_MODEL
 
     @requires_ollama
-    @pytest.mark.asyncio
-    async def test_invalid_model_returns_error(self):
+    def test_invalid_model_returns_error(self):
         """Nonexistent model returns an error response (no exception)."""
         provider = OllamaProvider(model="nonexistent-model-xyz", base_url=OLLAMA_HOST)
-        resp = await provider.send("hello")
+        resp = asyncio.run(provider.send("hello"))
         assert resp.error is not None
 
 
@@ -510,8 +509,7 @@ class TestFullPipelineIntegration:
     """End-to-end: create template, run against Ollama, score, persist."""
 
     @requires_ollama
-    @pytest.mark.asyncio
-    async def test_complete_workflow(self, storage):
+    def test_complete_workflow(self, storage):
         # 1. Save template to storage
         storage.save_template(
             "qa_template",
@@ -526,7 +524,7 @@ class TestFullPipelineIntegration:
 
         # 3. Run against Ollama
         provider = OllamaProvider(model=OLLAMA_MODEL, base_url=OLLAMA_HOST)
-        resp = await provider.send(rendered, temperature=0)
+        resp = asyncio.run(provider.send(rendered, temperature=0))
         assert resp.error is None
         assert "100" in resp.text
 
