@@ -1,0 +1,16 @@
+.venv/
+.git/
+.github/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+htmlcov/
+.coverage
+.env
+.worktrees/
+.nyc_output/
