@@ -1,4 +1,4 @@
-"""Prompt template engine with variable interpolation and version control."""
+"""Prompt template engine with variable interpolation and versioning."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any
 
 @dataclass
 class PromptTemplate:
-    """A version-controlled prompt template with variable interpolation."""
+    """A versioned prompt template with variable interpolation."""
 
     name: str
     content: str

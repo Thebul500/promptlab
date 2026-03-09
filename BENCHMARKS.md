@@ -87,7 +87,7 @@ dominates execution time by 3 orders of magnitude.
 | Single prompt, one provider | ~same | ~same (< 10 ms overhead) |
 | Same prompt, 3 providers (A/B test) | 3x sequential | 2x faster (parallel dispatch) |
 | 5 prompt variants, scored | manual scripting | built-in sweep + scoring pipeline |
-| Version-controlled templates | git + text files | automatic versioning with SQLite |
+| Versioned templates | git + text files | automatic versioning with SQLite |
 | Chain of 3 dependent prompts | custom scripting | declarative YAML, DAG execution |
 
 PromptLab's value is not raw speed (the LLM is always the bottleneck) but

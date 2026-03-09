@@ -2,7 +2,7 @@
 
 ## Overview
 
-PromptLab is a prompt engineering toolkit for developing, testing, and evaluating LLM prompts across multiple providers. It supports version-controlled YAML templates with variable interpolation, A/B testing across OpenAI, Anthropic, and Ollama, response scoring with pluggable evaluation metrics, and prompt chain composition for multi-step pipelines.
+PromptLab is a prompt engineering toolkit for developing, testing, and evaluating LLM prompts across multiple providers. It supports versioned YAML templates with variable interpolation, A/B testing across OpenAI, Anthropic, and Ollama, response scoring with pluggable evaluation metrics, and prompt chain composition for multi-step pipelines.
 
 ## Installation
 
@@ -23,7 +23,7 @@ Ollama requires a running Ollama server — no extra Python packages needed.
 
 ### 1. Prompt Template Development
 
-Create reusable, version-controlled prompt templates in YAML format with `{{ variable }}` interpolation.
+Create reusable, versioned prompt templates in YAML format with `{{ variable }}` interpolation.
 
 **Template file** (`prompts/summarize.yaml`):
 

@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Prompt engineering toolkit for the command line. Version-controlled prompt templates with variable interpolation, A/B testing across LLM providers (Ollama, Anthropic, OpenAI), response scoring with quality rubrics, and prompt chain composition.
+Prompt engineering toolkit for the command line. Versioned prompt templates with variable interpolation, A/B testing across LLM providers (Ollama, Anthropic, OpenAI), response scoring with quality rubrics, and prompt chain composition.
 
 ## Quick Start
 
