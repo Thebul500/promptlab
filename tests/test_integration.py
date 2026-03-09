@@ -77,6 +77,7 @@ def storage(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.network
 class TestNetworkReachability:
     """Verify network targets are reachable via real HTTP/TCP."""
 
