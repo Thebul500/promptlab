@@ -273,7 +273,6 @@ def test_cli_help_shows_history():
 
 def test_cli_history_empty(tmp_path):
     """history command with empty DB shows no runs."""
-    from unittest.mock import patch
     import promptlab.storage as storage_mod
 
     original_default = storage_mod.DEFAULT_DB_PATH
