@@ -165,7 +165,8 @@ class Storage:
             ),
         )
         self.conn.commit()
-        assert cur.lastrowid is not None
+        if cur.lastrowid is None:
+            raise RuntimeError("INSERT did not return a row id")
         return cur.lastrowid
 
     def get_run(self, run_id: int) -> dict[str, Any] | None:
@@ -195,7 +196,8 @@ class Storage:
             (run_id, scorer_type, score, json.dumps(details or {}), time.time()),
         )
         self.conn.commit()
-        assert cur.lastrowid is not None
+        if cur.lastrowid is None:
+            raise RuntimeError("INSERT did not return a row id")
         return cur.lastrowid
 
     def get_scores(self, run_id: int) -> list[dict[str, Any]]:
