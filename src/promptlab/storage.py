@@ -1,4 +1,4 @@
-"""SQLite storage layer for templates, runs, and results."""
+"""SQLite storage layer with version control for templates, runs, and scores."""
 
 import json
 import sqlite3

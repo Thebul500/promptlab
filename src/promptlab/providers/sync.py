@@ -45,7 +45,7 @@ class OllamaSyncProvider(Provider):
     name = "ollama"
 
     def __init__(self, host: str | None = None, model: str = "qwen3:14b") -> None:
-        self.host = host or os.environ.get("OLLAMA_HOST", "http://10.0.3.144:11434")
+        self.host = host or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self.model = model
 
     def generate(self, prompt: str, **kwargs: Any) -> GenerateResult:

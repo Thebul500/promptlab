@@ -162,7 +162,10 @@ from promptlab.scorer import (
 )
 from promptlab.providers.base import ProviderResponse
 
-response = ProviderResponse(text="Hello world", latency_ms=450, cost=0.003)
+response = ProviderResponse(
+    text="Hello world", provider="ollama", model="qwen3:14b",
+    latency_ms=450, cost=0.003,
+)
 
 # Individual scorers
 latency_score = LatencyScorer(target_ms=1000).score(response)
@@ -229,7 +232,7 @@ store.save_score(run_id, "latency", 0.85, {"target_ms": 1000})
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `OLLAMA_HOST` | Ollama server URL | `http://10.0.3.144:11434` |
+| `OLLAMA_HOST` | Ollama server URL | `http://localhost:11434` |
 | `ANTHROPIC_API_KEY` | Anthropic API key | *(none — provider disabled)* |
 | `OPENAI_API_KEY` | OpenAI API key | *(none — provider disabled)* |
 
