@@ -1,0 +1,11 @@
+services:
+  promptlab:
+    build: .
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+    volumes:
+      - ./prompts:/app/prompts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
