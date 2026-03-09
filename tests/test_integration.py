@@ -13,7 +13,6 @@ import asyncio
 import os
 import socket
 import sqlite3
-from pathlib import Path
 
 import httpx
 import pytest

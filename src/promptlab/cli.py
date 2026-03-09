@@ -8,6 +8,10 @@ from typing import TYPE_CHECKING
 import click
 import yaml
 
+if TYPE_CHECKING:
+    from .providers.sync import GenerateResult
+    from .storage import Storage
+
 from . import __version__
 from .template import PromptTemplate
 
@@ -60,7 +64,6 @@ def list_vars(template_file: str) -> None:
 def run(template_file: str, var: tuple[str, ...], provider: tuple[str, ...], model: str | None, score: bool, no_save: bool) -> None:
     """Run a prompt template against LLM provider(s)."""
     from .providers import get_available_providers, get_sync_provider
-    from .providers.base import ProviderResponse
     from .storage import Storage
 
     tmpl = _load_template(template_file)
@@ -125,7 +128,6 @@ def run(template_file: str, var: tuple[str, ...], provider: tuple[str, ...], mod
 def compare(template_file: str, var: tuple[str, ...], score: bool, no_save: bool) -> None:
     """Run a prompt against ALL available providers and compare results."""
     from .providers import get_available_providers  # noqa: F811
-    from .providers.base import ProviderResponse
     from .runner import run_prompt
     from .storage import Storage
 
@@ -278,7 +280,7 @@ def _score_and_display(result: "GenerateResult", store: "Storage | None", run_id
     scores = pipeline.score(response)
     aggregate = sum(s.score for s in scores) / len(scores)
 
-    click.echo(f"  Scores: ", nl=False)
+    click.echo("  Scores: ", nl=False)
     parts = [f"{s.scorer}={s.score:.2f}" for s in scores]
     click.echo(f"{', '.join(parts)}  (avg: {aggregate:.2f})")
 
