@@ -48,7 +48,7 @@ def list_vars(template_file: str) -> None:
 @click.option("--model", "-m", default=None, help="Override model name.")
 def run(template_file: str, var: tuple[str, ...], provider: tuple[str, ...], model: str | None) -> None:
     """Run a prompt template against LLM provider(s)."""
-    from .providers import get_available_providers, get_provider
+    from .providers import get_available_providers, get_sync_provider
 
     tmpl = _load_template(template_file)
     variables = _parse_vars(var)
@@ -56,16 +56,16 @@ def run(template_file: str, var: tuple[str, ...], provider: tuple[str, ...], mod
 
     # Resolve providers
     if provider:
-        providers = [get_provider(p) for p in provider]
+        sync_providers = [get_sync_provider(p) for p in provider]
     else:
-        providers = get_available_providers()
-        if not providers:
+        sync_providers = get_available_providers()
+        if not sync_providers:
             click.echo("No providers available. Set OLLAMA_HOST, ANTHROPIC_API_KEY, or OPENAI_API_KEY.")
             raise SystemExit(1)
 
     click.echo(f"Prompt: {rendered[:100]}{'...' if len(rendered) > 100 else ''}\n")
 
-    for p in providers:
+    for p in sync_providers:
         kwargs = {"model": model} if model else {}
         result = p.generate(rendered, **kwargs)
         if result.error:
@@ -81,7 +81,7 @@ def run(template_file: str, var: tuple[str, ...], provider: tuple[str, ...], mod
 @click.option("--var", "-v", multiple=True, help="Variable in key=value format.")
 def compare(template_file: str, var: tuple[str, ...]) -> None:
     """Run a prompt against ALL available providers and compare results."""
-    from .providers import get_available_providers
+    from .providers import get_available_providers  # noqa: F811
     from .runner import run_prompt
 
     tmpl = _load_template(template_file)
@@ -116,7 +116,7 @@ def providers() -> None:
         status = "available" if p.is_available() else "not configured"
         detail = ""
         if cls.name == "ollama":
-            detail = f" ({p.host})"
+            detail = f" ({getattr(p, 'host', 'localhost')})"
         elif cls.name == "anthropic":
             detail = " (ANTHROPIC_API_KEY)" if p.is_available() else " (set ANTHROPIC_API_KEY)"
         elif cls.name == "openai":

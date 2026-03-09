@@ -93,7 +93,7 @@ def test_cli_run_ollama(tmp_path):
     result = runner.invoke(main, ["run", str(tmpl_file), "-p", "ollama"])
     assert result.exit_code == 0
     assert "ollama" in result.output
-    assert "Latency:" in result.output
+    assert "ms" in result.output
 
 
 # --- Template ---

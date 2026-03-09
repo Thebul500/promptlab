@@ -1,0 +1,143 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "promptlab",
+      "version": "0.1.0",
+      "description": "Prompt engineering toolkit with versioned templates, A/B testing, and evaluation",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:pypi/promptlab@0.1.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "click",
+      "version": ">=8.1",
+      "purl": "pkg:pypi/click",
+      "scope": "required",
+      "description": "CLI framework"
+    },
+    {
+      "type": "library",
+      "name": "jinja2",
+      "version": ">=3.1",
+      "purl": "pkg:pypi/jinja2",
+      "scope": "required",
+      "description": "Template engine for prompt templates"
+    },
+    {
+      "type": "library",
+      "name": "pyyaml",
+      "version": ">=6.0",
+      "purl": "pkg:pypi/pyyaml",
+      "scope": "required",
+      "description": "YAML parsing for template and config files"
+    },
+    {
+      "type": "library",
+      "name": "httpx",
+      "version": ">=0.27",
+      "purl": "pkg:pypi/httpx",
+      "scope": "required",
+      "description": "HTTP client for Ollama REST API provider"
+    },
+    {
+      "type": "library",
+      "name": "openai",
+      "version": ">=1.0",
+      "purl": "pkg:pypi/openai",
+      "scope": "required",
+      "description": "OpenAI API client for GPT model provider"
+    },
+    {
+      "type": "library",
+      "name": "anthropic",
+      "version": ">=0.30",
+      "purl": "pkg:pypi/anthropic",
+      "scope": "required",
+      "description": "Anthropic API client for Claude model provider"
+    },
+    {
+      "type": "library",
+      "name": "tabulate",
+      "version": ">=0.9",
+      "purl": "pkg:pypi/tabulate",
+      "scope": "required",
+      "description": "Table formatting for CLI output"
+    },
+    {
+      "type": "library",
+      "name": "hatchling",
+      "version": ">=0",
+      "purl": "pkg:pypi/hatchling",
+      "scope": "required",
+      "description": "Build system backend"
+    },
+    {
+      "type": "library",
+      "name": "pytest",
+      "version": ">=8.0",
+      "purl": "pkg:pypi/pytest",
+      "scope": "optional",
+      "description": "Testing framework"
+    },
+    {
+      "type": "library",
+      "name": "pytest-cov",
+      "version": ">=5.0",
+      "purl": "pkg:pypi/pytest-cov",
+      "scope": "optional",
+      "description": "Coverage plugin for pytest"
+    },
+    {
+      "type": "library",
+      "name": "pytest-asyncio",
+      "version": ">=0.23",
+      "purl": "pkg:pypi/pytest-asyncio",
+      "scope": "optional",
+      "description": "Async test support for pytest"
+    },
+    {
+      "type": "library",
+      "name": "ruff",
+      "version": ">=0.4",
+      "purl": "pkg:pypi/ruff",
+      "scope": "optional",
+      "description": "Python linter and formatter"
+    },
+    {
+      "type": "library",
+      "name": "mypy",
+      "version": ">=1.10",
+      "purl": "pkg:pypi/mypy",
+      "scope": "optional",
+      "description": "Static type checker"
+    },
+    {
+      "type": "library",
+      "name": "types-PyYAML",
+      "version": ">=6.0",
+      "purl": "pkg:pypi/types-pyyaml",
+      "scope": "optional",
+      "description": "Type stubs for PyYAML"
+    },
+    {
+      "type": "library",
+      "name": "types-tabulate",
+      "version": ">=0.9",
+      "purl": "pkg:pypi/types-tabulate",
+      "scope": "optional",
+      "description": "Type stubs for tabulate"
+    }
+  ]
+}
