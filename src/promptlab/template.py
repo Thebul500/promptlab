@@ -1,4 +1,4 @@
-"""Prompt template engine with variable interpolation and version tracking."""
+"""Prompt template engine with variable interpolation and version control."""
 
 from __future__ import annotations
 
