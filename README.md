@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A CLI tool for running prompt templates against LLM providers (Ollama, Anthropic, OpenAI) and comparing results. Render templates with variables, A/B test across models, and get timing/cost metrics.
+Prompt engineering toolkit for the command line. Version-controlled prompt templates with variable interpolation, A/B testing across LLM providers (Ollama, Anthropic, OpenAI), response scoring with quality rubrics, and prompt chain composition.
 
 ## Quick Start
 
@@ -50,41 +50,60 @@ pip install -e ".[openai]"
 pip install -e ".[all,dev]"
 ```
 
-## Providers
+Requires Python 3.10+. Core dependencies: `click`, `pyyaml`, `httpx`.
 
-| Provider  | Backend | Auth | Cost |
-|-----------|---------|------|------|
-| `ollama`  | Self-hosted Ollama server | None (set `OLLAMA_HOST`) | Free |
-| `anthropic` | Anthropic API | `ANTHROPIC_API_KEY` env var | Per-token |
-| `openai`  | OpenAI API | `OPENAI_API_KEY` env var | Per-token |
+## Usage
 
-Default Ollama host: `http://10.0.3.144:11434` (override with `OLLAMA_HOST`).
+### CLI Commands
 
-## CLI Commands
+**Render a template** — substitute variables without calling any LLM:
 
 ```bash
-# Render a template with variable substitution (no LLM)
 promptlab render template.yaml -v key1=value1 -v key2=value2
+```
 
-# List variables in a template
+**List variables** — show which variables a template expects:
+
+```bash
 promptlab list-vars template.yaml
+```
 
-# Run a prompt against specific providers
+**Run a prompt** — send to one or more providers and see results with latency/cost:
+
+```bash
+# Single provider
+promptlab run template.yaml -v topic=AI -p ollama
+
+# Multiple providers
 promptlab run template.yaml -v topic=AI -p ollama -p anthropic
 
-# Run against ALL available providers and compare
+# Override model
+promptlab run template.yaml -v topic=AI -p openai -m gpt-4o-mini
+```
+
+**Compare providers** — A/B test across all available providers:
+
+```bash
 promptlab compare template.yaml -v topic=AI
+```
 
-# List available providers and their status
+Output includes a comparison table with latency, token count, cost, and a fastest/cheapest summary.
+
+**List providers** — check which providers are configured:
+
+```bash
 promptlab providers
+```
 
-# Show version
+**Show version:**
+
+```bash
 promptlab info
 ```
 
-## Python API
+### Python API
 
-### Templates
+**Templates** — create, render, and version prompt templates:
 
 ```python
 from promptlab.template import PromptTemplate
@@ -99,9 +118,13 @@ prompt = tmpl.render(language="Python", code="x = 1")
 
 # Check required variables
 print(tmpl.variables)  # {'language', 'code'}
+
+# Version a template
+v2 = tmpl.new_version("Review this {{ language }} code for {{ criteria }}: {{ code }}")
+print(v2.version)  # 2
 ```
 
-### Providers
+**Providers** — generate responses from LLMs:
 
 ```python
 from promptlab.providers import OllamaProvider, get_available_providers
@@ -110,42 +133,119 @@ from promptlab.providers import OllamaProvider, get_available_providers
 provider = OllamaProvider(host="http://localhost:11434")
 result = provider.generate("Explain quicksort in one sentence.")
 print(result.text)
-print(f"Latency: {result.latency_ms:.0f}ms, Tokens: {result.token_count}")
+print(f"Latency: {result.latency_ms:.0f}ms, Tokens: {result.output_tokens}")
 
 # Auto-detect all configured providers
 providers = get_available_providers()
 ```
 
-### A/B Testing
+**A/B testing** — run the same prompt across providers and compare:
 
 ```python
 from promptlab.providers import OllamaProvider, AnthropicProvider
-from promptlab.runner import run_prompt, compare_results
+from promptlab.runner import run_prompt
 from promptlab.template import PromptTemplate
 
 tmpl = PromptTemplate(name="test", content="Explain {{ topic }} simply.")
 providers = [OllamaProvider(), AnthropicProvider()]
 
-results = run_prompt(tmpl, {"topic": "recursion"}, providers)
-report = compare_results(results)
+report = run_prompt(tmpl, {"topic": "recursion"}, providers)
 print(report.summary())
 ```
 
-### Response Scoring
+**Response scoring** — evaluate responses with built-in scorers:
 
 ```python
-from promptlab.scoring import ResponseMetrics, compare_responses
+from promptlab.scorer import (
+    LatencyScorer, CostScorer, JsonValidScorer,
+    KeywordScorer, RubricScorer, ScoringPipeline,
+)
+from promptlab.providers.base import ProviderResponse
 
-m = ResponseMetrics(latency_ms=450.0, token_count=150, cost_usd=0.003)
-m.add_score("relevance", 0.9)
-m.add_score("coherence", 0.85)
-print(f"Throughput: {m.tokens_per_second:.0f} tok/s")
-print(f"Avg quality: {m.average_score:.2f}")
+response = ProviderResponse(text="Hello world", latency_ms=450, cost=0.003)
+
+# Individual scorers
+latency_score = LatencyScorer(target_ms=1000).score(response)
+json_score = JsonValidScorer().score(response)
+keyword_score = KeywordScorer(["hello", "world"], require_all=True).score(response)
+
+# Scoring pipeline — run multiple scorers and aggregate
+pipeline = ScoringPipeline([LatencyScorer(), CostScorer()])
+aggregate = pipeline.score_aggregate(response)
+
+# Rubric-based scoring with weighted criteria
+rubric = RubricScorer({
+    "criteria": [
+        {"name": "accuracy", "weight": 3, "description": "Factually correct"},
+        {"name": "clarity", "weight": 2, "description": "Clear and well-structured"},
+    ]
+})
+rubric_score = rubric.score(response, scores={"accuracy": 5, "clarity": 4})
 ```
 
-## Template Format
+**Prompt chains** — compose multi-step prompt pipelines:
 
-Templates are YAML files:
+```python
+from promptlab.chain import PromptChain, ChainStep
+from promptlab.template import PromptTemplate
+
+chain = PromptChain(name="summarize-then-translate")
+chain.add_step(ChainStep(
+    name="summarize",
+    template=PromptTemplate(name="s", content="Summarize: {{ text }}"),
+))
+chain.add_step(ChainStep(
+    name="translate",
+    template=PromptTemplate(name="t", content="Translate to French: {{ previous_output }}"),
+))
+
+results = chain.execute({"text": "Long article content here..."})
+# results[0] = rendered summary prompt, results[1] = rendered translation prompt
+```
+
+**Persistent storage** — save templates, runs, and scores to SQLite:
+
+```python
+from promptlab.storage import Storage
+
+store = Storage()  # defaults to ~/.promptlab/promptlab.db
+store.save_template("greeting", "Hello {{ name }}, welcome to {{ place }}!")
+tmpl = store.get_template("greeting")  # latest version
+store.list_templates()
+
+# Save and query run results
+run_id = store.save_run(
+    template_name="greeting", template_version=1,
+    provider="ollama", model="qwen3:14b",
+    variables={"name": "Alice"}, rendered_prompt="Hello Alice...",
+    response_text="...", latency_ms=320, tokens_out=50,
+)
+store.save_score(run_id, "latency", 0.85, {"target_ms": 1000})
+```
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `OLLAMA_HOST` | Ollama server URL | `http://10.0.3.144:11434` |
+| `ANTHROPIC_API_KEY` | Anthropic API key | *(none — provider disabled)* |
+| `OPENAI_API_KEY` | OpenAI API key | *(none — provider disabled)* |
+
+### Providers
+
+| Provider | Backend | Auth | Cost | Default Model |
+|----------|---------|------|------|---------------|
+| `ollama` | Self-hosted Ollama | None | Free | `qwen3:14b` |
+| `anthropic` | Anthropic API | `ANTHROPIC_API_KEY` | Per-token | `claude-sonnet-4-20250514` |
+| `openai` | OpenAI API | `OPENAI_API_KEY` | Per-token | `gpt-4o` |
+
+Ollama is available with no API key. Anthropic and OpenAI require their respective API keys set as environment variables.
+
+### Template Format
+
+Templates are YAML files with Jinja2-style `{{ variable }}` interpolation:
 
 ```yaml
 name: code_review
@@ -160,19 +260,29 @@ content: |
   Provide specific suggestions for improvement.
 ```
 
-Variables use `{{ variable }}` syntax (Jinja2-style).
+### Storage
+
+Run history and templates are persisted to `~/.promptlab/promptlab.db` (SQLite with WAL mode). Override by passing a custom path to `Storage(db_path=...)`.
 
 ## Architecture
 
 ```
 src/promptlab/
-  __init__.py        # Package version
-  cli.py             # Click CLI (render, run, compare, providers)
-  template.py        # PromptTemplate + TemplateRegistry
-  providers.py       # OllamaProvider, AnthropicProvider, OpenAIProvider
-  runner.py          # A/B testing runner + comparison reports
-  scoring.py         # ResponseMetrics + compare_responses
-  chain.py           # PromptChain + ChainStep (prompt pipelines)
+  __init__.py              # Package version
+  cli.py                   # Click CLI (render, run, compare, providers, info)
+  template.py              # PromptTemplate + TemplateRegistry
+  runner.py                # A/B testing runner + ComparisonReport
+  scoring.py               # ResponseMetrics + compare_responses
+  scorer.py                # Scoring pipeline (latency, cost, length, JSON, regex, keyword, rubric)
+  chain.py                 # PromptChain + ChainStep (multi-step prompt pipelines)
+  storage.py               # SQLite persistence (templates, runs, scores, chains)
+  providers/
+    __init__.py            # Public API re-exports
+    base.py                # BaseProvider + ProviderResponse
+    sync.py                # OllamaSyncProvider, AnthropicSyncProvider, OpenAISyncProvider
+    ollama_provider.py     # Async Ollama adapter
+    anthropic_provider.py  # Async Anthropic adapter
+    openai_provider.py     # Async OpenAI adapter
 ```
 
 ## Development
@@ -180,7 +290,7 @@ src/promptlab/
 ```bash
 pip install -e ".[dev]"
 pytest -v                                   # all tests
-pytest -v -m "not network"                  # unit tests only (no Ollama needed)
+pytest -v -m "not network"                  # unit tests only (no LLM needed)
 pytest --cov=promptlab --cov-report=term    # with coverage
 ruff check src/
 mypy src/promptlab/
