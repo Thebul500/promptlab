@@ -38,5 +38,5 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["anthropic", "anthropic.*", "openai", "openai.*"]
+module = ["anthropic", "anthropic.*", "openai", "openai.*", "httpx", "click", "click.*", "yaml"]
 ignore_missing_imports = true

@@ -86,7 +86,7 @@ class OllamaSyncProvider(Provider):
     def is_available(self) -> bool:
         try:
             resp = httpx.get(f"{self.host}/api/tags", timeout=5)
-            return resp.status_code == 200
+            return bool(resp.status_code == 200)
         except Exception:
             return False
 
