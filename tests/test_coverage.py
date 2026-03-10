@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import json
+import os
 import sys
 import tempfile
 import types
@@ -223,15 +224,20 @@ class TestOllamaAsyncProvider:
 
 
 class TestAnthropicAsyncProvider:
+    @pytest.fixture(autouse=True)
+    def _set_env(self):
+        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-placeholder"}):
+            yield
+
     def test_defaults(self):
         mod = _import_anthropic_provider()
-        p = mod.AnthropicProvider(api_key="test-placeholder")
+        p = mod.AnthropicProvider()
         assert p.name == "anthropic"
         assert p.default_model == "claude-sonnet-4-20250514"
 
     def test_custom_model(self):
         mod = _import_anthropic_provider()
-        p = mod.AnthropicProvider(model="claude-3-opus-20240229", api_key="test-placeholder")
+        p = mod.AnthropicProvider(model="claude-3-opus-20240229")
         assert p.default_model == "claude-3-opus-20240229"
 
     def test_send_success(self):
@@ -253,7 +259,7 @@ class TestAnthropicAsyncProvider:
         mock_client = AsyncMock()
         mock_client.messages.create.return_value = mock_message
 
-        p = mod.AnthropicProvider(api_key="test-placeholder")
+        p = mod.AnthropicProvider()
         p._client = mock_client
         result = _run(p.send("hello"))
 
@@ -270,7 +276,7 @@ class TestAnthropicAsyncProvider:
         mock_client = AsyncMock()
         mock_client.messages.create.side_effect = RuntimeError("API error")
 
-        p = mod.AnthropicProvider(api_key="test-placeholder")
+        p = mod.AnthropicProvider()
         p._client = mock_client
         result = _run(p.send("hello"))
 
@@ -280,7 +286,7 @@ class TestAnthropicAsyncProvider:
 
     def test_list_models(self):
         mod = _import_anthropic_provider()
-        p = mod.AnthropicProvider(api_key="test-placeholder")
+        p = mod.AnthropicProvider()
         models = p.list_models()
         assert "claude-sonnet-4-20250514" in models
         assert len(models) == 6
@@ -301,9 +307,14 @@ class TestAnthropicAsyncProvider:
 
 
 class TestOpenAIAsyncProvider:
+    @pytest.fixture(autouse=True)
+    def _set_env(self):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-placeholder"}):
+            yield
+
     def test_defaults(self):
         mod = _import_openai_provider()
-        p = mod.OpenAIProvider(api_key="test-placeholder")
+        p = mod.OpenAIProvider()
         assert p.name == "openai"
         assert p.default_model == "gpt-4o-mini"
 
@@ -328,7 +339,7 @@ class TestOpenAIAsyncProvider:
         mock_client = AsyncMock()
         mock_client.chat.completions.create.return_value = mock_response
 
-        p = mod.OpenAIProvider(api_key="test-placeholder")
+        p = mod.OpenAIProvider()
         p._client = mock_client
         result = _run(p.send("hello", temperature=0.5, max_tokens=256))
 
@@ -356,7 +367,7 @@ class TestOpenAIAsyncProvider:
         mock_client = AsyncMock()
         mock_client.chat.completions.create.return_value = mock_response
 
-        p = mod.OpenAIProvider(api_key="test-placeholder")
+        p = mod.OpenAIProvider()
         p._client = mock_client
         result = _run(p.send("hello"))
 
@@ -369,7 +380,7 @@ class TestOpenAIAsyncProvider:
         mock_client = AsyncMock()
         mock_client.chat.completions.create.side_effect = RuntimeError("timeout")
 
-        p = mod.OpenAIProvider(api_key="test-placeholder")
+        p = mod.OpenAIProvider()
         p._client = mock_client
         result = _run(p.send("hello"))
 
@@ -378,7 +389,7 @@ class TestOpenAIAsyncProvider:
 
     def test_list_models(self):
         mod = _import_openai_provider()
-        p = mod.OpenAIProvider(api_key="test-placeholder")
+        p = mod.OpenAIProvider()
         models = p.list_models()
         assert "gpt-4o" in models
         assert "gpt-4o-mini" in models
