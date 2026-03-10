@@ -120,6 +120,7 @@ class TestChainComposition:
         assert chain.execute({}) == []
 
 
+@pytest.mark.network
 class TestOllamaLiveGeneration:
     """Run real prompts through Ollama and validate the full pipeline."""
 

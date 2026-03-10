@@ -175,7 +175,7 @@ class TestAnthropicProvider:
         assert result.error == "ANTHROPIC_API_KEY not set"
 
     def test_is_available_with_key(self):
-        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-test"}):
+        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-placeholder"}):
             p = AnthropicProvider()
             assert p.is_available() is True
 
@@ -197,7 +197,7 @@ class TestAnthropicProvider:
         mock_anthropic = MagicMock()
         mock_anthropic.Anthropic.return_value = mock_client
 
-        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-test"}):
+        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-placeholder"}):
             with patch.dict("sys.modules", {"anthropic": mock_anthropic}):
                 p = AnthropicProvider()
                 result = p.generate("hello")
@@ -233,7 +233,7 @@ class TestOpenAIProvider:
         assert result.error == "OPENAI_API_KEY not set"
 
     def test_is_available(self):
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test"}):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-placeholder"}):
             p = OpenAIProvider()
             assert p.is_available() is True
 
@@ -256,7 +256,7 @@ class TestOpenAIProvider:
         mock_openai = MagicMock()
         mock_openai.OpenAI.return_value = mock_client
 
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test"}):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-placeholder"}):
             with patch.dict("sys.modules", {"openai": mock_openai}):
                 p = OpenAIProvider()
                 result = p.generate("hello")

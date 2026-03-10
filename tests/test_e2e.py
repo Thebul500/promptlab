@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 import tempfile
 
+import pytest
+
 os.environ.setdefault("OLLAMA_HOST", "http://10.0.3.144:11434")
 
 from promptlab.chain import ChainStep, PromptChain
@@ -21,6 +23,7 @@ from promptlab.storage import Storage
 from promptlab.template import PromptTemplate
 
 
+@pytest.mark.network
 class TestTemplateToGenerationToScoring:
     """Full pipeline: define template -> render -> send to Ollama -> score response."""
 
@@ -127,6 +130,7 @@ class TestChainExecution:
         assert len(results[1]) > 0
 
 
+@pytest.mark.network
 class TestCompareProviders:
     """A/B comparison using the same provider with different prompts."""
 
@@ -146,6 +150,7 @@ class TestCompareProviders:
         assert len(summary) > 10
 
 
+@pytest.mark.network
 class TestFullWorkflowWithStorage:
     """Complete workflow: template -> generate -> store -> score -> retrieve."""
 
