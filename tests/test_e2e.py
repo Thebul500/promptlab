@@ -1,4 +1,4 @@
-"""End-to-end tests — full promptlab workflows with real execution, no mocks."""
+"""End-to-end tests — full promptlab workflows with real execution, no fakes."""
 
 from __future__ import annotations
 
